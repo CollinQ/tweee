@@ -1,36 +1,37 @@
-from flask import Flask, jsonify
-import requests
+from flask import Flask, jsonify, request
+import tweepy
 import os
 
 app = Flask(__name__)
 
-# Assuming your BEARER_TOKEN environment variable is already set
-bearer_token = os.environ.get("BEARER_TOKEN")
+consumer_key = "placeholder"
+consumer_secret = "placeholder"
+access_token = "placeholder"
+access_token_secret = "placeholder"
 
-def create_url():
-    tweet_fields = "tweet.fields=lang,author_id"
-    ids = "ids=1278747501642657792,1255542774432063488" # Adjust as needed
-    url = f"https://api.twitter.com/2/tweets?{ids}&{tweet_fields}"
-    return url
+auth = tweepy.OAuth1UserHandler(
+    consumer_key, consumer_secret, access_token, access_token_secret
+)
+api = tweepy.API(auth)
 
-def bearer_oauth(r):
-    r.headers["Authorization"] = f"Bearer {bearer_token}"
-    r.headers["User-Agent"] = "v2TweetLookupPython"
-    return r
+@app.route('/user-lookup', methods=['GET'])
+def user_lookup():
+    username = request.args.get('username', default='elonmusk', type=str) 
 
-def connect_to_endpoint(url):
-    response = requests.get(url, auth=bearer_oauth)
-    if response.status_code != 200:
-        return {
-            "error": "Request returned an error: {} {}".format(response.status_code, response.text)
-        }, response.status_code
-    return response.json()
+    user_response = api.get_user(screen_name=username)
 
-@app.route('/get-tweets', methods=['GET'])
-def get_tweets():
-    url = create_url()
-    json_response = connect_to_endpoint(url)
-    return jsonify(json_response)
+    if user_response:
+        user_data = {
+            "id": user_response.id_str,
+            "name": user_response.name,
+            "username": user_response.screen_name,
+            "followers_count": user_response.followers_count,
+            "following_count": user_response.friends_count,
+            "tweet_count": user_response.statuses_count
+        }
+        return jsonify(user_data), 200
+    else:
+        return jsonify({"error": "User not found or unable to fetch user details"}), 404
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(debug=True)
