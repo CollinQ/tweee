@@ -1,37 +1,35 @@
-from flask import Flask, jsonify, request
-import tweepy
+from flask import Flask, jsonify
+from openai import OpenAI
 import os
 
 app = Flask(__name__)
 
-consumer_key = "placeholder"
-consumer_secret = "placeholder"
-access_token = "placeholder"
-access_token_secret = "placeholder"
-
-auth = tweepy.OAuth1UserHandler(
-    consumer_key, consumer_secret, access_token, access_token_secret
+# Set your OpenAI API key here
+client = OpenAI(
+    api_key=os.environ.get("OPENAI_API_KEY"),
 )
-api = tweepy.API(auth)
 
-@app.route('/user-lookup', methods=['GET'])
-def user_lookup():
-    username = request.args.get('username', default='elonmusk', type=str) 
+def get_openai_embeddings(text_input):
+    try:
+        response = client.embeddings.create(
+            model="text-embedding-3-small",  # or any other suitable model
+            input=text_input,
+            encoding_format="float"  # You can choose "base64" depending on your needs
+        )
+        # Extracting the embeddings from the response
+        embeddings = response.data[0].embedding  # Adjusted based on actual accessible attributes
+        return embeddings
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return {"error": str(e)}  # Return or log the error for debugging
 
-    user_response = api.get_user(screen_name=username)
 
-    if user_response:
-        user_data = {
-            "id": user_response.id_str,
-            "name": user_response.name,
-            "username": user_response.screen_name,
-            "followers_count": user_response.followers_count,
-            "following_count": user_response.friends_count,
-            "tweet_count": user_response.statuses_count
-        }
-        return jsonify(user_data), 200
-    else:
-        return jsonify({"error": "User not found or unable to fetch user details"}), 404
+@app.route('/get-embedding', methods=['GET'])
+def get_embedding():
+    # Hardcoded string for testing
+    test_string = "test string"
+    embeddings = get_openai_embeddings(test_string)
+    return jsonify(embeddings)  # Returning the embeddings as JSON response
 
 if __name__ == '__main__':
     app.run(debug=True)
