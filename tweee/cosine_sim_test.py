@@ -1,34 +1,46 @@
-import pandas as pd
-import ast
+import json
 from scipy.spatial import distance
-from test_embedding import embedding
 
-def load_embeddings_from_excel(file_path):
-    df = pd.read_excel(file_path)
-    df['Embeddings'] = df['Embeddings'].apply(ast.literal_eval)
-    return df
+def load_tweets_from_json(file_path):
+    with open(file_path, 'r') as file:
+        tweets = json.load(file)
+    return tweets
 
 def cosine_similarity(vec1, vec2):
+    if vec1 is None or vec2 is None:
+        return 0  # Returning 0 similarity if any vector is None
     return 1 - distance.cosine(vec1, vec2)
 
-def find_most_similar_embedding(target_embedding, embeddings_df):
-    highest_similarity = -1
-    most_similar_index = None
+def find_similar_embeddings_sorted(target_embedding, tweets):
+    for tweet in tweets:
+        tweet['similarity'] = cosine_similarity(target_embedding, tweet.get('embeddings', []))
 
-    for index, row in embeddings_df.iterrows():
-        similarity = cosine_similarity(target_embedding, row['Embeddings'])
-        if similarity > highest_similarity:
-            highest_similarity = similarity
-            most_similar_index = index
-
-    return most_similar_index, highest_similarity
+    # Sort tweets based on similarity and return top 5
+    sorted_tweets = sorted(tweets, key=lambda x: x.get('similarity', 0), reverse=True)
+    return sorted_tweets[:5]
 
 def main():
-    file_path = 'tweets.xlsx'
-    embeddings_df = load_embeddings_from_excel(file_path)
-    target_embedding = embedding
-    index, similarity = find_most_similar_embedding(target_embedding, embeddings_df)
-    print(f"The most similar embedding is at index {index} with a similarity of {similarity:.4f}")
+    json_file = 'modified_sample_tweets.json'  # Path to your JSON file
+    tweets = load_tweets_from_json(json_file)
+
+    if not tweets:
+        print("No tweets found in the file.")
+        return
+
+    if 'embeddings' not in tweets[0]:
+        print("The first tweet does not have 'embeddings'.")
+        return
+
+    target_embedding = tweets[0]['embeddings']
+
+    if not target_embedding:
+        print("Embeddings for the first tweet are empty or invalid.")
+        return
+
+    top_similar_embeddings = find_similar_embeddings_sorted(target_embedding, tweets)
+    print("Top 5 most similar embeddings:")
+    for tweet in top_similar_embeddings:
+        print(tweet['text'][:50], "...", tweet['similarity'])
 
 if __name__ == "__main__":
     main()
