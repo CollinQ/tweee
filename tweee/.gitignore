@@ -24,4 +24,10 @@ yarn-error.log*
 
 .venv/
 
+part1.json
+part2.json
+modified_sample_tweets.json
+modified_concatenated_tweets.json
 concatenated_tweets.json
+sample_tweets.json
+first_10k.json
