@@ -4,15 +4,18 @@ import os
 
 app = Flask(__name__)
 
-consumer_key = "placeholder"
-consumer_secret = "placeholder"
-access_token = "placeholder"
-access_token_secret = "placeholder"
+CONSUMER_KEY = os.environ.get('TWITTER_CONSUMER_KEY')
+CONSUMER_KEY_SECRET = os.environ.get('TWITTER_CONSUMER_KEY_SECRET')
+ACCESS_TOKEN = os.environ.get('TWITTER_ACCESS_TOKEN')
+ACCESS_TOKEN_SECRET = os.environ.get('TWITTER_ACCESS_TOKEN_SECRET')
 
-auth = tweepy.OAuth1UserHandler(
-    consumer_key, consumer_secret, access_token, access_token_secret
-)
-api = tweepy.API(auth)
+def authenticate_twitter_app():
+	auth=tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_KEY_SECRET)
+	auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+	api=tweepy.API(auth)
+	return api
+
+api = authenticate_twitter_app()
 
 @app.route('/user-lookup', methods=['GET'])
 def user_lookup():
