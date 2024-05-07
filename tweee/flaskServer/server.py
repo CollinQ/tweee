@@ -6,6 +6,8 @@ import ast
 from scipy.spatial import distance
 from io import BytesIO
 import requests
+import chardet
+from io import TextIOWrapper
 
 app = Flask(__name__)
 # Set your OpenAI API key here
@@ -13,15 +15,28 @@ client = OpenAI(
     api_key=os.environ.get("OPENAI_API_KEY"),
 )
 
-def load_embeddings_from_csv(url):
-    response = requests.get(url)
-    if response.status_code == 200:
-        csv_data = BytesIO(response.content)
-        df = pd.read_csv(csv_data)
-        df['Embeddings'] = df['Embeddings'].apply(ast.literal_eval)
+def load_embeddings_from_json(url):
+    try:
+        # Step 1: Download JSON data from the URL
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an error for unsuccessful requests
+
+        # Step 2: Parse JSON data into a Python object
+        json_data = response.json()
+
+        # Step 3: Convert the JSON data to a DataFrame
+        df = pd.DataFrame(json_data)
+        df['embeddings'] = df['embeddings'].apply(ast.literal_eval)
+
         return df
-    else:
-        raise Exception(f"Failed to retrieve the file. Status code: {response.status_code}")
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error downloading JSON data: {e}")
+        return None
+    except ValueError as e:
+        print(f"Error parsing JSON data: {e}")
+        return None
+
 
 def cosine_similarity(vec1, vec2):
     return 1 - distance.cosine(vec1, vec2)
@@ -47,8 +62,14 @@ def get_openai_embeddings(text_input):
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
+    
+@app.route('/poop', methods=['GET'])
+def test():
+    text = request.args.get('text')
+    date = request.args.get('date')
+    return [text, date]
 
-@app.route('/find-similar', methods=['POST'])
+@app.route('/find-similar', methods=['GET'])
 def find_similar():
     content = request.json
     input_text = content.get('text', '')
@@ -60,8 +81,8 @@ def find_similar():
         return jsonify({'error': 'Failed to generate embedding'})
 
 # Load embeddings DataFrame on server start
-url = 'https://twee-tweets1.s3.us-east-2.amazonaws.com/tweets-1.xlsx'
-embeddings_df = load_embeddings_from_csv(url)
+url = 'https://twee-tweets1.s3.us-east-2.amazonaws.com/random_10k.json'
+embeddings_df = load_embeddings_from_json(url)
 
 if __name__ == '__main__':
     app.run(debug=True)
