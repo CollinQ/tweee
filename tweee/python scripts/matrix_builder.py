@@ -34,7 +34,7 @@ def find_similar_tweets(tweets, target_tweet):
 def main():
     json_file = '/Users/johnkim/Documents/GitHub/allergy/tweee/random_10k.json'
     tweets = load_tweets_from_json(json_file)
-    target_index = len(tweets) // 2  # Choose the middle tweet as the target
+    target_index = len(tweets) // 4  # Choose the middle tweet as the target
     target_tweet = tweets[target_index]
 
     weeks = [-1, 0, 1]
