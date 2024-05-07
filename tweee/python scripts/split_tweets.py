@@ -38,7 +38,7 @@ def split_json_file(input_file, output_file1, output_file2):
     print(f"Split the file into {output_file1} and {output_file2}.")
 
 if __name__ == "__main__":
-    input_file = 'modified_concatonated_tweets.json'
-    output_file1 = 'part1.json'
-    output_file2 = 'part2.json'
+    input_file = '/Users/johnkim/Documents/GitHub/allergy/tweee/part1.json'
+    output_file1 = '/Users/johnkim/Documents/GitHub/allergy/tweee/part1_half1.json'
+    output_file2 = '/Users/johnkim/Documents/GitHub/allergy/tweee/part1_half2.json'
     split_json_file(input_file, output_file1, output_file2)
