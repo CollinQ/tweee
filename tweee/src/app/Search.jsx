@@ -3,6 +3,10 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { gsap } from "gsap";
 import { Button } from "../components/ui/button";
+import { MyContext } from "../MyContext";
+import { useContext } from "react";
+import { useState } from "react";
+
 
 const InfiniteTweetGraph = () => {
   const containerRef = useRef(null);
@@ -10,7 +14,10 @@ const InfiniteTweetGraph = () => {
   const rendererRef = useRef(null);
   const controlsRef = useRef(null);
 
+  const {tweets, setTweets} = useContext(MyContext);
+
   useEffect(() => {
+    console.log(tweets);
     const width = containerRef.current.clientWidth;
     const height = containerRef.current.clientHeight;
 
@@ -62,84 +69,139 @@ const InfiniteTweetGraph = () => {
       //scene.add(gridLines);
     }
 
-    function wrapText(context, text, x, y, maxWidth, lineHeight) {
+    function wrapText(context, text, x, y, maxWidth, lineHeight, maxY) {
       const words = text.split(' ');
       let line = '';
       const lines = [];
-      
+    
       for (const word of words) {
         const testLine = line + word + ' ';
         const metrics = context.measureText(testLine);
         const testWidth = metrics.width;
     
-        if (testWidth > maxWidth && line !== '') {
+        if (testWidth > maxWidth - 40 && line !== '') {
           lines.push(line);
           line = word + ' ';
         } else {
           line = testLine;
         }
       }
-      
+    
       lines.push(line);
     
       for (const l of lines) {
+        if (y + lineHeight > maxY) { // Check if adding another line would exceed the maxY
+          break; // Stop adding lines if it would
+        }
         context.fillText(l, x, y);
         y += lineHeight;
       }
     }
     
     // Function to create tweet planes
-    const createTweetPlane = (i, j, link, text) => {
+    const createTweetPlane = (i, j, tweet) => {
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
+      const devicePixelRatio = window.devicePixelRatio || 1;
       const canvasWidth = 512;
       const canvasHeight = 256;
-      canvas.width = canvasWidth;
-      canvas.height = canvasHeight;
+      const lineHeight = 24;
+      const padding = 40;
+      const footerHeight = 40; // Height reserved for footer text
+      const borderRadius = 20; // Radius for rounded corners
+      canvas.width = canvasWidth * devicePixelRatio;
+      canvas.height = canvasHeight * devicePixelRatio;
     
-      // Set background color
+      context.scale(devicePixelRatio, devicePixelRatio);
+
+      function drawRoundedRect(x, y, width, height, radius) {
+        context.beginPath();
+        context.moveTo(x + radius, y);
+        context.lineTo(x + width - radius, y);
+        context.quadraticCurveTo(x + width, y, x + width, y + radius);
+        context.lineTo(x + width, y + height - radius);
+        context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        context.lineTo(x + radius, y + height);
+        context.quadraticCurveTo(x, y + height, x, y + height - radius);
+        context.lineTo(x, y + radius);
+        context.quadraticCurveTo(x, y, x + radius, y);
+        context.closePath();
+        context.fill();
+      }
+    
+      // Draw rounded rectangle
+      drawRoundedRect(context, 0, 0, canvasWidth, canvasHeight, borderRadius);
+    
+      // Background color
+      context.fillStyle = '#070708';
+      drawRoundedRect(0, 0, canvasWidth, canvasHeight, borderRadius);
+    
+      // Text properties for the username
+      context.font = 'bold 18px Helvetica Neue';
       context.fillStyle = '#ffffff';
-      context.fillRect(0, 0, canvasWidth, canvasHeight);
+      context.fillText(tweet.user, padding, padding);
     
-      // Set text properties
-      context.font = '30px Arial';
-      context.fillStyle = '#000000';
+      // Text properties for the date
+      context.textAlign = 'right';
+      context.fillText(new Date(tweet.time).toLocaleDateString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric'
+      }), canvasWidth - padding, padding);
+      context.textAlign = 'left';
     
-      // Draw wrapped text
-      const lineHeight = 40; // Adjust line height
-      const padding = 50; // Adjust padding
-      wrapText(context, text, padding, padding, canvasWidth - 2 * padding, lineHeight);
+      // Maximum Y coordinate for body text, to avoid overlapping with footer
+      const maxY = canvasHeight - footerHeight;
     
-      // Create a texture from the canvas
+      // Body text properties
+      context.font = '16px Helvetica Neue';
+      context.fillStyle = '#c1ebfb';
+      wrapText(context, tweet.text, padding, padding + 60, canvasWidth - 2 * padding, lineHeight, maxY);
+    
+      // Footer text
+      context.font = 'italic 16px Helvetica Neue';
+      context.fillStyle = '#ffffff';
+      context.fillText("Click to read more...", padding, canvasHeight - padding);
+    
       const texture = new THREE.CanvasTexture(canvas);
-    
-      // Create a material with the texture
       const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
-    
-      // Create a plane geometry
       const planeGeometry = new THREE.PlaneGeometry(6, 3);
-    
-      // Create a mesh
       const planeMesh = new THREE.Mesh(planeGeometry, material);
-    
-      planeMesh.position.set(i * TWEET_DISTANCE, j * TWEET_DISTANCE, 0);
-    
-      // Add interactivity: Open tweet link on click
-      planeMesh.userData = { url: link };
+      planeMesh.position.set(i * TWEET_DISTANCE, j * TWEET_DISTANCE/2, 0);
+      planeMesh.userData = { url: tweet.link };
       planeMesh.cursor = 'pointer';
-    
       scene.add(planeMesh);
     };
+    
+    
 
     // Sample tweet data, replace with your actual data
-    const tweets = [
-      { id: '1', link: 'https://twitter.com/example/status/1', text: 'This is the first tweet fnasdkfnsalfnldsafnsdanfals' },
-      { id: '2', link: 'https://twitter.com/example/status/1', text: 'This is the first tweet fnasdkfnsalfnldsafnsdanfals' },
-    ];
+    // const tweets = [
+    //   {
+    //     "id": "1644498932242821120",
+    //     "link": "https://www.twitter.com/SenBlumenthal/statuses/1644498932242821120",
+    //     "similarity": 0.535,
+    //     "text": "If allowed to go into effect, this is tantamount to a nationwide ban on the most common form of abortion care. Mifepristone has been used safely&amp;effectively for 20 yrs w/ FDA approval for abortion care &amp; miscarriage management—now recklessly overruled by an activist judge in TX. https://twitter.com/CBSNews/status/1644473061419147265 QT @CBSNews BREAKING: A federal judge has halted FDA approval of the abortion pill mifepristone. https://www.cbsnews.com/news/federal-judge-halts-fda-approval-of-abortion-pill-mifepristone/?ftag=CNM-00-10aab7e&linkId=208915865",
+    //     "time": "2023-04-07T20:34:33-04:00",
+    //     "user": "SenBlumenthal"
+    //     },
+    //     { id: '2', link: 'https://twitter.com/example/status/1', text: 'This is the first tweet fnasdkfnsalfnldsafnsdanfals' },
+    // ];
 
-    for (let i = 0; i < tweets.length; i++) {
-      createTweetPlane(i, 0, tweets[i].link, tweets[i].text);
+    const weeks = [-2, -1, 0, 1, 2];
+    console.log("Tweets: ", tweets);
+
+    if (tweets["week_0"] !== undefined) {
+      for (let i = 0; i < weeks.length; i++) {
+        console.log(weeks[i]);
+        console.log(tweets[`week_${weeks[i]}`]);
+        for (let j = 0; j < tweets[`week_${weeks[i]}`].length; j++) {
+            createTweetPlane(j, weeks[i], tweets[`week_${weeks[i]}`][j])
+        } // createTweetPlane(i, weeks[i], tweets[`week_${weeks[i]}`]);
+      }
     }
+
+    // for (let i = 0; i < tweets.length; i++) {
+    //   createTweetPlane(i, 0, tweets[i]);
+    // }
 
     // Lighting
 
@@ -155,10 +217,10 @@ const InfiniteTweetGraph = () => {
           newPosition.x += moveAmount;
           break;
         case 'ArrowUp':
-          newPosition.y += moveAmount;
+          newPosition.y += moveAmount/2;
           break;
         case 'ArrowDown':
-          newPosition.y -= moveAmount;
+          newPosition.y -= moveAmount/2;
           break;
         default:
           break;

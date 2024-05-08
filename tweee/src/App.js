@@ -9,10 +9,12 @@ import { useState } from 'react';
 
 function App() {
   const [tweetText, setTweetText] = useState("");
+  const [tweetDate, setTweetDate] = useState("");
+  const [tweets, setTweets] = useState({});
 
   return (
     <div>
-        <MyContext.Provider value={{ tweetText, setTweetText }}>
+        <MyContext.Provider value={{ tweetText, setTweetText, tweetDate, setTweetDate, tweets, setTweets }}>
           <Router>
             <Routes>
               <Route exact path= "/" element={<Home/>} />

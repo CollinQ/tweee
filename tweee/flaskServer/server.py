@@ -8,8 +8,10 @@ import numpy as np
 import requests
 import chardet
 from io import TextIOWrapper
+from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
+CORS(app)
 # Set your OpenAI API key here
 client = OpenAI(
     api_key=os.environ.get("OPENAI_API_KEY"),
@@ -51,9 +53,11 @@ def find_similar_tweets(tweets, target_embedding):
             'id': tweet['id'],
             'text': tweet['text'],
             'similarity': round(similarity, 3),
-            'time': tweet['time'].isoformat()  # Ensure the time is in a string format suitable for JSON
+            'time': tweet['time'].isoformat(),  # Ensure the time is in a string format suitable for JSON
+            'user': tweet['screen_name'],
+            'link': tweet['link']
         })
-    return sorted(results, key=lambda x: x['similarity'], reverse=True)[:5]
+    return sorted(results, key=lambda x: x['similarity'], reverse=True)[:20]
 
 
 def get_openai_embeddings(text_input):
@@ -74,25 +78,33 @@ def test():
     date = request.args.get('date')
     return [text, date]
 
+@app.route('/test', methods=['GET'])
+@cross_origin()
+def test_route():
+    return jsonify({"message": "Server is reachable"})
+
 @app.route('/find-similar', methods=['GET'])
 def find_similar():
-    content = request.json
-    input_text = content['text']
-    input_date_str = content['date']  # Expected in YYYY-MM-DD format
-    input_date = datetime.strptime(input_date_str, "%Y-%m-%d")
+    try:
+        input_text = request.args.get('text')
+        input_date_str = request.args.get('date')
+        input_date = datetime.strptime(input_date_str, "%Y-%m-%d")
 
-    new_embedding = get_openai_embeddings(input_text)
-    if new_embedding:
-        weeks = [-1, 0, 1]
-        results = {}
-        for week in weeks:
-            week_tweets = filter_tweets_by_week(all_tweets, input_date, week)
-            top_similar_tweets = find_similar_tweets(week_tweets, new_embedding)
-            results[f'week_{week}'] = top_similar_tweets
-        
-        return jsonify(results)
-    else:
-        return jsonify({'error': 'Failed to generate embedding'})
+        new_embedding = get_openai_embeddings(input_text)
+        if new_embedding:
+            weeks = [-2, -1, 0, 1, 2]
+            results = {}
+            for week in weeks:
+                week_tweets = filter_tweets_by_week(all_tweets, input_date, week)
+                top_similar_tweets = find_similar_tweets(week_tweets, new_embedding)
+                results[f'week_{week}'] = top_similar_tweets
+            
+            return jsonify(results)
+        else:
+            return jsonify({'error': 'Failed to generate embedding'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 tweets_file = 'https://twee-tweets1.s3.us-east-2.amazonaws.com/random_10k.json'
 all_tweets = load_tweets_from_json(tweets_file)
