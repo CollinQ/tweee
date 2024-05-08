@@ -31,6 +31,7 @@ const InfiniteTweetGraph = () => {
       rendererRef.current = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     }
     const renderer = rendererRef.current;
+    renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(width, height);
     if (!containerRef.current.contains(renderer.domElement)) {
       containerRef.current.appendChild(renderer.domElement);
@@ -164,6 +165,9 @@ const InfiniteTweetGraph = () => {
       context.fillText("Click to read more...", padding, canvasHeight - padding);
     
       const texture = new THREE.CanvasTexture(canvas);
+      texture.generateMipmaps = true;
+      texture.minFilter = THREE.LinearMipmapLinearFilter; // This can help with blurring at a distance
+
       const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
       const planeGeometry = new THREE.PlaneGeometry(6, 3);
       const planeMesh = new THREE.Mesh(planeGeometry, material);
