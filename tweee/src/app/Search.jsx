@@ -6,6 +6,7 @@ import { Button } from "../components/ui/button";
 import { MyContext } from "../MyContext";
 import { useContext } from "react";
 import { useState } from "react";
+import { Link } from 'react-router-dom';
 
 
 const InfiniteTweetGraph = () => {
@@ -13,6 +14,7 @@ const InfiniteTweetGraph = () => {
   const camera = useRef(new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000));
   const rendererRef = useRef(null);
   const controlsRef = useRef(null);
+  const [beginStatus, setBeginStatus] = useState(true);
 
   const {tweets, setTweets} = useContext(MyContext);
 
@@ -194,7 +196,7 @@ const InfiniteTweetGraph = () => {
         console.log(weeks[i]);
         console.log(tweets[`week_${weeks[i]}`]);
         for (let j = 0; j < tweets[`week_${weeks[i]}`].length; j++) {
-            createTweetPlane(j, weeks[i], tweets[`week_${weeks[i]}`][j])
+            createTweetPlane(j, -weeks[i], tweets[`week_${weeks[i]}`][j])
         } // createTweetPlane(i, weeks[i], tweets[`week_${weeks[i]}`]);
       }
     }
@@ -209,6 +211,7 @@ const InfiniteTweetGraph = () => {
     const handleKeyDown = (event) => {
       const moveAmount = TWEET_DISTANCE;
       const newPosition = { x: camera.current.position.x, y: camera.current.position.y };
+      setBeginStatus(false);
       switch (event.key) {
         case 'ArrowLeft':
           newPosition.x -= moveAmount;
@@ -268,7 +271,7 @@ const InfiniteTweetGraph = () => {
     };
   }, []);
 
-  const resetCameraPosition = () => {
+  const resetCameraPosition = () => {setBeginStatus(true);
     gsap.to(camera.current.position, {
       x: 0,
       y: 0,
@@ -277,19 +280,40 @@ const InfiniteTweetGraph = () => {
       onComplete: () => {
         controlsRef.current.target.set(0, 0, 0); // Reset the target
         controlsRef.current.update();
+        setBeginStatus(true);
       }
     });
   };
 
   return (
-    <div className="relative w-full h-screen">
+    <div className="dark relative w-full h-screen">
       {/* This is the 3D Visualization Container */}
       <div ref={containerRef} className="absolute inset-0"></div>
       {/* This is the Sticky Button */}
-      <div className="fixed top-2 left-2 z-00">
+      {beginStatus && <div className="fixed inset-x-0 top-20 flex justify-center">
+          <h1 className="text-2xl font-extrabold tracking-tight lg:text-2xl text-accent-foreground text-center">
+              Older Tweets ↑
+          </h1>
+      </div>}
+      {beginStatus && <div className="fixed inset-x-0 bottom-20 flex justify-center">
+          <h1 className="text-2xl font-extrabold tracking-tight lg:text-2xl text-accent-foreground text-center">
+              Newer Tweets ↓
+          </h1>
+      </div>}
+      {beginStatus && <div className="fixed inset-y-0 right-20 flex items-center">
+          <h1 className="text-2xl font-extrabold tracking-tight lg:text-2xl text-accent-foreground text-center">
+              Relevant Tweets →
+          </h1>
+      </div>}
+      <div className="fixed top-5 right-5 z-00">
         <Button variant="inputMatch" onClick={resetCameraPosition}>
           Reset Position
         </Button>
+      </div>
+      <div className="fixed top-5 left-5 z-00">
+        <Link to="/" className="text-2xl font-extrabold tracking-tight lg:text-2xl text-accent-foreground text-center">
+          Home
+        </Link>
       </div>
     </div>
   );

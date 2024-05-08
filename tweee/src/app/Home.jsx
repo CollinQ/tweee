@@ -13,6 +13,7 @@ export default function Home () {
     const [ navigate, setNavigate ] = useState(false);
     const [ dateError, setDateError ] = useState(false);
     const [ emptyError, setEmptyError ] = useState(false);
+    const [ loadingState, setLoadingState ] = useState(false);
     const { tweetText, setTweetText } = useContext(MyContext);
     const { tweetDate, setTweetDate } = useContext(MyContext);
     const { tweets, setTweets } = useContext(MyContext);
@@ -69,7 +70,10 @@ export default function Home () {
             setEmptyError(false);
         }
 
-        if (dateError || emptyError) {return}
+        if (!validateDate(tweetDate) || tweetText === "") {return}
+        else {
+            setLoadingState(true);
+        }
 
         await fetchTweets(tweetText, tweetDate);
 
@@ -92,7 +96,7 @@ export default function Home () {
                 </h1>
                 <ReactTypingEffect
                     text={["The New Age of Media Digestion"]}
-                    className="text-4xl font-extrabold tracking-tight lg:text-2xl text-accent-foreground text-center" // text-center ensures the text is centered
+                    className="text-2xl font-extrabold tracking-tight lg:text-2xl text-accent-foreground text-center" // text-center ensures the text is centered
                     cursorRenderer={ cursor => <h1> {cursor} </h1> }
                     displayTextRenderer={(text, i) => {
                         return (
@@ -122,9 +126,13 @@ export default function Home () {
                         onChange={(e) => setTweetDate(e.target.value)}
                         />
                     </div>
-                    <div className="m-4">
+                    {!loadingState && <div className="m-4">
                         <Button variant="inputMatch" onClick={handleClick}>Submit</Button>
-                    </div>
+                    </div>}
+                    {loadingState && 
+                    <div className="m-4">
+                        <Button variant="inputMatch" disabled="true" onClick={handleClick}>Loading...</Button>
+                    </div>}
                 </div>
                 {dateError && (
                     <p className="text-red-500">Date must be in YYYY-MM-DD format</p>
