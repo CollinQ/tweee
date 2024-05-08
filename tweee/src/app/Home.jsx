@@ -134,6 +134,9 @@ export default function Home () {
                         <Button variant="inputMatch" disabled="true" onClick={handleClick}>Loading...</Button>
                     </div>}
                 </div>
+                <h1 className="text-1xl font-extrabold tracking-tight lg:text-1xl text-accent-foreground text-center">
+                    Enter a tweet to unlock the full story
+                </h1>
                 {dateError && (
                     <p className="text-red-500">Date must be in YYYY-MM-DD format</p>
                 )}
