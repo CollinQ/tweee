@@ -45,7 +45,7 @@ const InfiniteTweetGraph = () => {
     // Set up OrbitControls for mouse panning
     const controls = new OrbitControls(camera.current, renderer.domElement);
     controlsRef.current = controls;
-    controls.enableZoom = true;
+    //controls.enableZoom = true;
     controls.enableDamping = true;
 
     const TWEET_DISTANCE = 10; // Fixed distance between tweets
